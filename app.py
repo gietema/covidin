@@ -1,42 +1,41 @@
-import dash
-from dash.dependencies import Input, Output
-import dash_core_components as dcc 
-import dash_html_components as html
+import json
+import plotly
+import pandas as pd
+import plotly.graph_objs as go
+from starlette.applications import Starlette
+from starlette.routing import Route, Mount
+from starlette.templating import Jinja2Templates
+from starlette.staticfiles import StaticFiles
 
-from pandas_datareader import data as web 
-from datetime import datetime as dt
 
-app = dash.Dash('Hello World',
-                external_stylesheets=['https://codepen.io/chriddyp/pen/bWLwgP.css'])
+templates = Jinja2Templates(directory='templates')
 
-app.layout = html.Div([
-    dcc.Dropdown(
-        id='my-dropdown',
-        options=[
-            {'label': 'Coke', 'value': 'COKE'},
-            {'label': 'Tesla', 'value': 'TSLA'},
-            {'label': 'Apple', 'value': 'AAPL'}
-        ],  
-        value='COKE'
-    ),  
-    dcc.Graph(id='my-graph')
-], style={'width': '500'})
 
-@app.callback(Output('my-graph', 'figure'), [Input('my-dropdown', 'value')])
-def update_graph(selected_dropdown_value):
-    df = web.DataReader(
-        selected_dropdown_value,
-        'yahoo',
-        dt(2017, 1, 1), 
-        dt.now()
-    )   
-    return {
-        'data': [{
-            'x': df.index,
-            'y': df.Close
-        }], 
-        'layout': {'margin': {'l': 40, 'r': 0, 't': 20, 'b': 30}}
-    }   
+def homepage(request):
+    municipality_name = request.path_params['municipality_name']
+    df = app.state.data
+    df = df[df.municipality_slug == municipality_name]
+    df["new_per_day"] = [d-d1 for d, d1 in zip(df.total_reported, [0] + df.total_reported.tolist()[:-1])]
+    new_today = df.new_per_day.tolist()[-1]
 
-if __name__ == '__main__':
-    app.run_server()
+    trace = go.Bar(
+        x = df.date.tolist(),
+        y = df.new_per_day.tolist(),
+    )
+    graph = json.dumps([trace], cls=plotly.utils.PlotlyJSONEncoder)
+
+    return templates.TemplateResponse('index.html', {
+        'request': request,
+        'municipality_name': df.municipality_name.iloc[0],
+        'new_today': new_today,
+        'new_per_day': df.new_per_day.tolist(),
+        'graph': graph
+    })
+
+routes = [
+    Route('/{municipality_name:str}', endpoint=homepage),
+    Mount('/static', StaticFiles(directory='static'), name='static')
+]
+
+app = Starlette(debug=True, routes=routes)
+app.state.data = pd.read_csv("static/data/data.csv")
