@@ -1,8 +1,10 @@
 import json
+from typing import Union
 import plotly
 import pandas as pd
 import plotly.graph_objs as go
 from starlette.applications import Starlette
+from starlette.requests import Request
 from starlette.routing import Route, Mount
 from starlette.templating import Jinja2Templates
 from starlette.staticfiles import StaticFiles
@@ -11,7 +13,7 @@ from starlette.responses import PlainTextResponse, RedirectResponse
 templates = Jinja2Templates(directory="templates")
 
 
-def selectpage(request):
+def selectpage(request: Request) -> templates.TemplateResponse:
     df = app.state.data
     return templates.TemplateResponse(
         "index.html",
@@ -25,13 +27,12 @@ def selectpage(request):
     )
 
 
-async def select(request):
+async def select(request: Request) -> RedirectResponse:
     data = await request.form()
-    response = RedirectResponse(url=f"/{data['municipality_slug']}")
-    return response
+    return RedirectResponse(url=f"/{data['municipality_slug']}")
 
 
-def homepage(request):
+def homepage(request: Request) -> Union[templates.TemplateResponse, RedirectResponse]:
     df = app.state.data
     municipality_name = request.path_params["municipality_name"]
 
