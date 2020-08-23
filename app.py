@@ -8,23 +8,21 @@ from starlette.templating import Jinja2Templates
 from starlette.staticfiles import StaticFiles
 from starlette.responses import PlainTextResponse, RedirectResponse
 
-templates = Jinja2Templates(directory='templates')
+templates = Jinja2Templates(directory="templates")
+
 
 def selectpage(request):
     df = app.state.data
-    municipality_name = None if "municipality_name" not in request.path_params else request.path_params["municipality_name"]
-    if municipality_name is not None:
-        message = f"{municipality_name.capitalize()} niet gevonden in lijst van gemeentes. Selecteer een gemeente"
-    else:
-        message = "Selecteer een gemeente"
-    return templates.TemplateResponse('index.html', {
-        'message': message,
-        "slugs": df.municipality_slug.tolist(),
-        "municipality_names": df.sort_values(by="municipality_slug").municipality_name.unique().tolist(),
-        "municipality_slugs": df.sort_values(by="municipality_slug").municipality_slug.unique().tolist(),
-        'last_date': df.date.tolist()[-1],
-        "request": request
-    })
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "slugs": df.municipality_slug.tolist(),
+            "municipality_names": df.sort_values(by="municipality_slug").municipality_name.unique().tolist(),
+            "municipality_slugs": df.sort_values(by="municipality_slug").municipality_slug.unique().tolist(),
+            "last_date": df.date.tolist()[-1],
+            "request": request,
+        },
+    )
 
 
 async def select(request):
@@ -32,48 +30,52 @@ async def select(request):
     response = RedirectResponse(url=f"/{data['municipality_slug']}")
     return response
 
+
 def homepage(request):
     df = app.state.data
-    municipality_name = request.path_params['municipality_name']
+    municipality_name = request.path_params["municipality_name"]
+
     if municipality_name is None:
-        return PlainTextResponse(f"{municipality_name.capitalize()} niet gevonden in lijst van gemeentes.")
+        return RedirectResponse(url="/")
+
     if municipality_name not in df.municipality_slug.tolist():
-        response = PlainTextResponse(f"{municipality_name.capitalize()} niet gevonden in lijst van gemeentes.")
-        return response
+        return RedirectResponse(url="/")
+
     df = df[df.municipality_slug == municipality_name]
-    df["new_per_day"] = [d-d1 for d, d1 in zip(df.total_reported, [0] + df.total_reported.tolist()[:-1])]
+    df["new_per_day"] = [d - d1 for d, d1 in zip(df.total_reported, [0] + df.total_reported.tolist()[:-1])]
     df["rolling_average_7_days"] = df.new_per_day.rolling(window=7).mean()
     new_today = df.new_per_day.tolist()[-1]
     last_date = df.date.tolist()[-1]
 
     bar = go.Bar(
-        x = df.date.tolist(),
-        y = df.new_per_day.tolist(),
-        name = "New confirmed cases per day",
-        marker_color='royalblue'
+        x=df.date.tolist(), y=df.new_per_day.tolist(), name="New confirmed cases per day", marker_color="royalblue"
     )
     line = go.Scatter(
-        x = df.date.tolist(),
-        y = df.rolling_average_7_days.tolist(),
-        name = "7-day rolling average",
-        line = dict(color="#df5b56", width=2, dash='solid')
+        x=df.date.tolist(),
+        y=df.rolling_average_7_days.tolist(),
+        name="7-day rolling average",
+        line=dict(color="#df5b56", width=2, dash="solid"),
     )
     graph = json.dumps([bar, line], cls=plotly.utils.PlotlyJSONEncoder)
 
-    return templates.TemplateResponse('show.html', {
-        'request': request,
-        'municipality_name': df.municipality_name.iloc[0],
-        'new_today': new_today,
-        'new_per_day': df.new_per_day.tolist(),
-        'last_date': last_date,
-        'graph': graph,
-    })
+    return templates.TemplateResponse(
+        "show.html",
+        {
+            "request": request,
+            "municipality_name": df.municipality_name.iloc[0],
+            "new_today": new_today,
+            "new_per_day": df.new_per_day.tolist(),
+            "last_date": last_date,
+            "graph": graph,
+        },
+    )
+
 
 routes = [
     Route("/", endpoint=selectpage),
     Route("/select", endpoint=select, methods=["post"]),
-    Route('/{municipality_name:str}', endpoint=homepage, methods=["post", "get"]),
-    Mount('/static', StaticFiles(directory='static'), name='static')
+    Route("/{municipality_name:str}", endpoint=homepage, methods=["post", "get"]),
+    Mount("/static", StaticFiles(directory="static"), name="static"),
 ]
 
 app = Starlette(debug=False, routes=routes)
