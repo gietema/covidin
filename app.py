@@ -34,6 +34,7 @@ async def select(request: Request) -> RedirectResponse:
 
 def homepage(request: Request) -> Union[templates.TemplateResponse, RedirectResponse]:
     df = app.state.data
+    df_all = df.copy()
     municipality_name = request.path_params["municipality_name"]
 
     if municipality_name is None:
@@ -68,6 +69,8 @@ def homepage(request: Request) -> Union[templates.TemplateResponse, RedirectResp
             "new_per_day": df.new_per_day.tolist(),
             "last_date": last_date,
             "graph": graph,
+            "municipality_names": df_all.sort_values(by="municipality_slug").municipality_name.unique().tolist(),
+            "municipality_slugs": df_all.sort_values(by="municipality_slug").municipality_slug.unique().tolist(),
         },
     )
 
