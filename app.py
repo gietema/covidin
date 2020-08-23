@@ -8,7 +8,7 @@ from starlette.requests import Request
 from starlette.routing import Route, Mount
 from starlette.templating import Jinja2Templates
 from starlette.staticfiles import StaticFiles
-from starlette.responses import PlainTextResponse, RedirectResponse
+from starlette.responses import RedirectResponse
 
 templates = Jinja2Templates(directory="templates")
 
