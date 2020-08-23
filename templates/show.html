@@ -31,28 +31,12 @@
     <div class="container">
       <div class="row">
         <div class="col-12 mt-5">
-            <div class="row">
-                <div class="col-6 mt-5">
-                    <form action="/select" method="POST">
-                        <div class="form-group">
-                            <label for="exampleFormControlSelect1">Covid data in:</label>
-                            <select name="municipality_slug" class="form-control" id="exampleFormControlSelect1">
-                              {% for municipality in municipality_names %}
-                                <option value="{{ municipality_slugs[loop.index-1] }}">{{ municipality }}</option>
-                              {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <button class="btn btn-primary" value="test" type="submit">Go</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <div class="col-12 mt-5">
-                Last updated on {{ last_date }}.
-                <a href="https://github.com/gietema/covidin" target="_blank">Source code</a>.
-                Data source: <a href="https://data.overheid.nl/dataset/11508-covid-19-aantallen-gemeente-cumulatief" target="_blank">data.overheid.nl</a>.
-              </div>
+          <h1>Covid in {{ municipality_name }}</h1>
+          Last updated on {{ last_date }}.
+          <a href="https://github.com/gietema/covidin" target="_blank">Source code</a>.
+          Data source: <a href="https://data.overheid.nl/dataset/11508-covid-19-aantallen-gemeente-cumulatief" target="_blank">data.overheid.nl</a>.
+          <div id="chart" class="chart mt-5">
+          </div>
         </div>
         
       </div>
